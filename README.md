@@ -3,7 +3,7 @@
 ## Overview
 This repository provides a comprehensive framework for detecting and classifying bears in both images and videos using state-of-the-art deep learning models. The project is divided into two main components:
 
-![umage](cameratrap_feat.png)
+![image](cameratrap_feat.png)
 
 ### - Bear Classification Model:
 
