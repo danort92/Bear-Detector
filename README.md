@@ -3,6 +3,8 @@
 ## Overview
 This repository provides a comprehensive framework for detecting and classifying bears in both images and videos using state-of-the-art deep learning models. The project is divided into two main components:
 
+![umage](cameratrap_feat.webp)
+
 ### - Bear Classification Model:
 
 A deep learning model built with TensorFlow/Keras designed to identify images captured by camera traps that contain bears. The model has been trained primarily on images of brown bears, but it can be fine-tuned easily to recognize other bear species or even other animals, making it versatile for various wildlife monitoring tasks.
