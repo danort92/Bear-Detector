@@ -2,13 +2,13 @@
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange?logo=tensorflow&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-2.13--2.15-orange?logo=tensorflow&logoColor=white)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
-**A deep learning framework for detecting and classifying bears in wildlife camera trap images and videos — built to support conservation efforts.**
+**A deep learning framework for detecting and classifying bears in wildlife camera-trap images and videos — built to support conservation efforts.**
 
 </div>
 
@@ -16,12 +16,14 @@
 
 ## 📖 Overview
 
-Bear-Detector provides a comprehensive end-to-end pipeline for wildlife monitoring using two complementary deep learning models:
+Bear-Detector provides a complete end-to-end pipeline for wildlife monitoring via two complementary deep learning models:
 
-- **Classification Model** — A MobileNetV2-based binary classifier that identifies whether a camera trap image contains a bear or not.
-- **Detection Model** — A YOLOv8-based object detector that localizes bears in video frames with bounding boxes, ideal for processing trail camera footage.
+| Model | Architecture | Task |
+|-------|-------------|------|
+| **Classifier** | MobileNetV2 + custom head | Binary image classification (Bear / Other) |
+| **Detector** | YOLOv8n | Object detection with bounding boxes in video |
 
-Both models are designed with flexibility in mind: they can be fine-tuned on new species or different datasets with minimal effort, making this framework reusable for a wide range of wildlife conservation projects.
+Both models are designed to be fine-tuned on new species or custom datasets with minimal effort.
 
 <div align="center">
   <img src="images/cameratrap_feat.png" alt="Camera trap bear detection" width="700"/>
@@ -31,13 +33,13 @@ Both models are designed with flexibility in mind: they can be fine-tuned on new
 
 ## 🎯 Key Features
 
-- **Binary image classification** using MobileNetV2 pretrained on ImageNet
+- **Binary image classification** using MobileNetV2 with transfer learning
 - **Real-time object detection** in video using YOLOv8
-- **Customizable threshold** for sensitivity tuning (default: 0.3)
-- **Roboflow integration** for seamless dataset download and setup
+- **Configurable confidence threshold** for recall / precision trade-off (default: `0.3`)
+- **Roboflow integration** for dataset download and setup
 - **Support for pre-trained weights** to skip training and run inference directly
-- **Batch image processing** via zip file upload
-- **End-to-end video pipeline** with automatic frame-by-frame detection and annotated output
+- **Batch image processing** via ZIP file upload
+- **End-to-end video pipeline** with annotated output
 
 ---
 
@@ -45,11 +47,22 @@ Both models are designed with flexibility in mind: they can be fine-tuned on new
 
 ```
 Bear-Detector/
-├── Bear_detection.ipynb            # Main notebook (classification + detection)
-├── Bear detection.v3i.yolov8-obb/  # YOLOv8 dataset (Roboflow format)
-├── ct/                             # Camera trap data
-├── images/                         # Sample output images and GIFs
-├── requirements.txt                # Python dependencies
+├── notebooks/
+│   └── Bear_detection.ipynb       # Main notebook (classification + detection)
+├── src/
+│   └── bear_detector/             # Importable Python package
+│       ├── __init__.py
+│       ├── config.py              # Dataclass-based configuration
+│       ├── classification.py      # MobileNetV2 training & inference
+│       ├── detection.py           # YOLOv8 training & video processing
+│       └── utils.py               # Shared helpers (image, zip, yaml)
+├── ct/                            # Camera-trap classification dataset
+│   ├── bear_ct/                   # Bear images (1 002)
+│   └── other_ct/                  # Non-bear images (2 002)
+├── Bear detection.v3i.yolov8-obb/ # YOLOv8 detection dataset (Roboflow)
+├── images/                        # Sample output images and GIFs
+├── requirements.txt               # Python dependencies
+├── .gitignore
 ├── LICENSE
 └── README.md
 ```
@@ -60,26 +73,9 @@ Bear-Detector/
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - pip
 - Google Colab (recommended) or a local environment with GPU support
-
-### Install Dependencies
-
-```bash
-pip install tensorflow keras opencv-python
-pip install tensorflow-addons
-pip install --upgrade typeguard
-pip install ultralytics==8.0.196
-pip install roboflow
-pip install pyyaml
-```
-
-Or install all at once:
-
-```bash
-pip install -r requirements.txt
-```
 
 ### Clone the Repository
 
@@ -88,44 +84,52 @@ git clone https://github.com/danort92/Bear-Detector.git
 cd Bear-Detector
 ```
 
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
 ---
 
 ## 🚀 Usage
 
-Open `Bear_detection.ipynb` in Google Colab or Jupyter Notebook and follow the steps below.
+Open `notebooks/Bear_detection.ipynb` in Google Colab or Jupyter and follow the numbered sections.
 
-### 1. Bear Classification (Image)
+### Threshold Semantics
 
-The classification pipeline uses MobileNetV2 to classify images as **Bear** or **Other**.
+The model sigmoid output represents `P(other)`. The *threshold* controls the
+minimum `P(bear) = 1 - output` required to classify an image as "Bear":
 
 ```python
-# Load and preprocess an image
-image = cv2.imread("your_image.jpg")
-image_resized = cv2.resize(image, (224, 224)) / 255.0
-image_batch = np.expand_dims(image_resized, axis=0)
-
-# Predict
-prediction = model.predict(image_batch)
-label = 'Bear' if prediction < (1 - THRESHOLD) else 'Other'
-print(f"Prediction: {label}")
+# Consistent rule used throughout the notebook
+is_bear = (1 - model_output) >= threshold   # i.e. model_output < 1 - threshold
 ```
 
-You can also upload a zip file of images — the model will sort them automatically into `predicted_bears/` and `predicted_others/` folders.
+A **lower** threshold → higher recall (fewer missed bears, more false positives).
+A **higher** threshold → higher precision (fewer false alarms, more missed bears).
 
-### 2. Bear Detection (Video)
+### Classification Inference (Single Image)
 
-The detection pipeline uses YOLOv8 to process video files frame by frame, drawing bounding boxes around detected bears.
+```python
+from bear_detector.utils import batch_from_path
+from bear_detector.classification import predict_image
+
+batch = batch_from_path("your_image.jpg")
+label, bear_prob = predict_image(model, batch, threshold=0.3)
+print(f"{label}  (P(bear) = {bear_prob:.3f})")
+```
+
+### Detection Inference (Video)
 
 ```python
 from ultralytics import YOLO
+from bear_detector.detection import process_video
 
-model = YOLO("your_weights.pt")
-process_video_with_yolo("input_video.mp4", model, output_path="output_video.mp4")
+yolo = YOLO("best.pt")
+frames = process_video("input.mp4", yolo, output_path="output_detected.mp4")
+print(f"Processed {frames} frames")
 ```
-
-### 3. Using Pre-Trained Weights
-
-When prompted in the notebook, choose to upload pre-trained weights (`.pt` file or `.zip`) to skip training and run inference directly.
 
 ---
 
@@ -133,25 +137,26 @@ When prompted in the notebook, choose to upload pre-trained weights (`.pt` file 
 
 ### Classification Model
 
-| Component        | Detail                        |
-|-----------------|-------------------------------|
-| Architecture     | MobileNetV2 (pretrained on ImageNet) |
-| Input size       | 224 × 224 px                  |
-| Output           | Binary (Bear / Other)         |
-| Optimizer        | Adam                          |
-| Loss             | Binary Cross-Entropy          |
-| Metrics          | Accuracy, Recall              |
-| Class Balancing  | Sklearn `compute_class_weight` |
-| Early Stopping   | Monitors `val_accuracy` (patience=2) |
+| Component | Detail |
+|-----------|--------|
+| Architecture | MobileNetV2 (frozen) + GAP + BN + Dense(128) + Dropout + Sigmoid |
+| Input size | 224 × 224 px |
+| Output | `P(other)` in [0, 1] |
+| Optimizer | Adam |
+| Loss | Binary Cross-Entropy |
+| Metrics | Accuracy, Recall |
+| Class Balancing | `sklearn.utils.class_weight.compute_class_weight` |
+| Regularisation | Dropout (0.3), Batch Normalisation, ReduceLROnPlateau |
+| Early Stopping | `val_accuracy`, patience = 5 |
 
 ### Detection Model
 
-| Component        | Detail                        |
-|-----------------|-------------------------------|
-| Architecture     | YOLOv8n                       |
-| Dataset source   | Roboflow (customizable)       |
-| Task             | Object detection (bounding boxes) |
-| Output format    | Annotated video (.mp4)        |
+| Component | Detail |
+|-----------|--------|
+| Architecture | YOLOv8n |
+| Dataset source | Roboflow (or local `Bear detection.v3i.yolov8-obb/`) |
+| Task | Object detection (bounding boxes) |
+| Output | Annotated video (.mp4) |
 
 ---
 
@@ -183,15 +188,24 @@ When prompted in the notebook, choose to upload pre-trained weights (`.pt` file 
 
 ## 📦 Dataset
 
-The classification dataset consists of images in two categories: **bear** and **other**, split into training and validation sets with data augmentation (rotation, flips, zoom, shear).
+### Classification
 
-The detection dataset is sourced from Roboflow and labeled in YOLOv8 OBB format. You can substitute it with your own labeled dataset by updating the `data.yaml` file paths.
+- **Bear**: 1 002 images (`ct/bear_ct/`)
+- **Other**: 2 002 images (`ct/other_ct/`)
+- **Split**: 80 / 20 train / val (stratified, `random_seed=42`)
+- **Augmentation**: rotation, flips, zoom, shear (on-the-fly)
+
+### Detection
+
+- Sourced from Roboflow, YOLOv8 OBB format
+- **Train**: 1 008 images | **Test**: 164 images
+- Substitute your own dataset by updating `data.yaml` paths (handled automatically by `setup_local_dataset`)
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you'd like to improve this project:
+Contributions are welcome! Please:
 
 1. Fork the repository
 2. Create a new branch (`git checkout -b feature/your-feature`)
@@ -203,7 +217,7 @@ Contributions are welcome! If you'd like to improve this project:
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
