@@ -49,7 +49,11 @@
 
 ![Segmentation examples](results/segmentation/segmentation_banner.jpg)
 
-> **Note:** The detection and tracking examples above use ground-truth label boxes from the Roboflow dataset to illustrate the overlay style. Segmentation masks are elliptical approximations; actual YOLOv8-seg output produces precise polygon masks.
+### Binary classification — bear vs. no bear (MobileNetV2)
+
+![Classification examples](results/classification/classification_banner.jpg)
+
+> **Note:** The detection and tracking examples above use ground-truth label boxes from the Roboflow dataset to illustrate the overlay style. Segmentation masks are elliptical approximations; actual YOLOv8-seg output produces precise polygon masks. Classification confidence scores are shown after training.
 
 ---
 
@@ -136,7 +140,8 @@ Bear-Detector/
 │
 ├── data/
 │   ├── raw/                       # Raw datasets (not tracked by git)
-│   └── processed/                 # Processed / formatted datasets
+│   ├── processed/                 # Processed / formatted datasets
+│   └── sample/                    # Sample video/images for quick demos
 │
 ├── models/
 │   ├── detection/                 # Detection model weights
@@ -233,7 +238,7 @@ pip install -e ".[dev]"
 
 The fastest way to try Bear Detector without any local setup is Google Colab.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/danort92/Bear-Detector/blob/main/notebooks/Bear_Detector_Colab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/danort92/Bear-Detector/blob/claude/improve-bear-detection-tKY3Y/notebooks/Bear_Detector_Colab.ipynb)
 
 The Colab notebook (`notebooks/Bear_Detector_Colab.ipynb`) walks through the full pipeline:
 
@@ -362,10 +367,13 @@ history = trainer.train(train_loader, val_loader)
 
 ### Video inference (detection + tracking)
 
+Place your test video in `data/sample/` — for example `data/sample/bears.mp4`.
+A short clip demonstrating the pipeline is also tracked there (see `data/sample/`).
+
 ```bash
 # Detection only
 python scripts/infer_video.py \
-    --video input.mp4 \
+    --video data/sample/bears.mp4 \
     --model outputs/models/detection/best.pt
 
 # Detection + SORT tracking (draws unique IDs)
