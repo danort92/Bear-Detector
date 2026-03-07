@@ -1,0 +1,14 @@
+# Detection fine-tuning configuration — overrides default.yaml
+# Usage: python scripts/train_detection.py --config config/detection_finetune.yaml
+
+experiment:
+  name: "bear_detector_detection_finetune"
+
+model:
+  detection:
+    architecture: "yolov8s"
+
+training:
+  detection:
+    epochs: 100
+    learning_rate: 0.0005
