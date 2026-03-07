@@ -112,7 +112,6 @@ class BearSegmentor:
                             mask, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST
                         )
                     frame = draw_mask(frame, mask, track_id=i)
-                draw_detection(frame, box, label, score)
             output["annotated_image"] = frame
 
         return output
