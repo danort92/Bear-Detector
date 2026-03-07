@@ -455,13 +455,17 @@ Results are saved to `outputs/metrics/detection_evaluation.json`.
 
 ### Baseline Results
 
-| Model | mAP@0.5 | Precision | Recall | MOTA |
-|-------|---------|-----------|--------|------|
-| YOLOv8n (baseline) | — | — | — | — |
-| YOLOv8s | — | — | — | — |
-| YOLOv8n-seg | — | — | — | — |
+| Model | mAP@0.5 | mAP@0.5:0.95 | Precision | Recall | Notes |
+|-------|---------|--------------|-----------|--------|-------|
+| YOLOv8n (COCO, zero-shot) | **0.735** | **0.524** | **0.949** | **0.715** | Pretrained on COCO, no fine-tuning |
+| YOLOv8n (fine-tuned) | — | — | — | — | After training on this dataset |
+| YOLOv8s (fine-tuned) | — | — | — | — | Larger backbone |
+| YOLOv8n-seg (fine-tuned) | — | — | — | — | Segmentation model |
 
-*Results will populate after training runs are completed.*
+Evaluated on 164 test images (207 ground-truth boxes). Full results in
+`outputs/metrics/detection_evaluation.json`.
+
+*Fine-tuned results will populate after training (see [Google Colab](#google-colab)).*
 
 ---
 
