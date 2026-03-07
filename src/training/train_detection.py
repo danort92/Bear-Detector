@@ -7,6 +7,9 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+# Repo root is three levels above this file: src/training/train_detection.py
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
 import yaml
 
 from src.utils.logging import get_logger
@@ -67,7 +70,11 @@ class DetectionTrainer:
         if self._resolved_yaml is not None:
             return self._resolved_yaml
 
-        yaml_path = Path(self.data_yaml).resolve()
+        yaml_path = Path(self.data_yaml)
+        if not yaml_path.is_absolute():
+            yaml_path = (_REPO_ROOT / yaml_path).resolve()
+        else:
+            yaml_path = yaml_path.resolve()
         with open(yaml_path) as f:
             data = yaml.safe_load(f)
 
