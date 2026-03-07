@@ -29,6 +29,7 @@ class DetectionTrainer:
         self.cfg = cfg
         self.mlflow_run = mlflow_run
         self.output_dir = Path(cfg["experiment"]["output_dir"])
+        self._resolved_yaml: str | None = None  # cached by _resolve_data_yaml()
 
         model_cfg = cfg["model"]["detection"]
         self.architecture = model_cfg["architecture"]
@@ -57,27 +58,26 @@ class DetectionTrainer:
         Ultralytics resolves the ``path`` key in data.yaml relative to its
         internal datasets directory, not to the yaml file itself.  This method
         rewrites the yaml in a temporary file using absolute paths so training
-        works from any working directory.
+        works from any working directory.  The result is cached so that
+        repeated calls (e.g. train then validate) reuse the same file.
 
         If the ``valid/images`` split is missing the ``val`` key falls back to
         the ``test`` split.
         """
+        if self._resolved_yaml is not None:
+            return self._resolved_yaml
+
         yaml_path = Path(self.data_yaml).resolve()
         with open(yaml_path) as f:
             data = yaml.safe_load(f)
 
         dataset_root = yaml_path.parent.resolve()
 
-        # Build absolute split paths
-        def _abs(rel: str) -> str:
-            return str(dataset_root / rel)
-
         data["path"] = str(dataset_root)
-        data["train"] = _abs(data.get("train", "train/images"))
-        test_abs = _abs(data.get("test", "test/images"))
+        data["train"] = str(dataset_root / data.get("train", "train/images"))
+        test_abs = str(dataset_root / data.get("test", "test/images"))
 
-        val_rel = data.get("val", "valid/images")
-        val_abs = _abs(val_rel)
+        val_abs = str(dataset_root / data.get("val", "valid/images"))
         if not Path(val_abs).exists():
             logger.warning(
                 f"Validation split not found at {val_abs}. Falling back to test split."
@@ -92,7 +92,8 @@ class DetectionTrainer:
         yaml.dump(data, tmp)
         tmp.close()
         logger.info(f"Resolved data yaml written to {tmp.name}")
-        return tmp.name
+        self._resolved_yaml = tmp.name
+        return self._resolved_yaml
 
     def train(self) -> dict[str, Any]:
         """Run the YOLOv8 training pipeline.
