@@ -14,7 +14,12 @@ from typing import Callable, Optional
 
 import numpy as np
 from PIL import Image
-from torch.utils.data import Dataset
+
+try:
+    from torch.utils.data import Dataset
+except ImportError:
+    class Dataset:  # type: ignore[no-redef]
+        pass
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 

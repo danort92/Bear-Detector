@@ -87,7 +87,7 @@ def main() -> None:
             "seed": seed,
         })
 
-        trainer = DetectionTrainer(cfg, mlflow_run=run._run)
+        trainer = DetectionTrainer(cfg, mlflow_run=run.mlflow_run)
         output = trainer.train()
         logger.info(f"Training complete. Best weights: {output['best_weights']}")
 

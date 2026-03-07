@@ -38,7 +38,7 @@ class ExperimentTracker:
         self.tracking_uri = mlflow_cfg.get("tracking_uri", str(self.output_dir / "mlruns"))
         self.mlflow_experiment = mlflow_cfg.get("experiment_name", self.experiment_name)
 
-        self._run = None
+        self.mlflow_run = None   # set to the active MLflow run inside start_run()
         self._metrics_buffer: dict[str, Any] = {}
 
     # ------------------------------------------------------------------
@@ -69,14 +69,14 @@ class ExperimentTracker:
 
                 mlflow.set_tracking_uri(self.tracking_uri)
                 mlflow.set_experiment(self.mlflow_experiment)
-                with mlflow.start_run(run_name=run_name or self.experiment_name) as run:
-                    self._run = run
+                with mlflow.start_run(run_name=run_name or self.experiment_name) as mlflow_run:
+                    self.mlflow_run = mlflow_run
                     logger.info(
-                        f"MLflow run started: {run.info.run_id} "
+                        f"MLflow run started: {mlflow_run.info.run_id} "
                         f"(experiment={self.mlflow_experiment})"
                     )
                     yield self
-                    self._run = None
+                    self.mlflow_run = None
             except ImportError:
                 logger.warning("MLflow not installed — falling back to JSON logging.")
                 yield self
@@ -97,7 +97,7 @@ class ExperimentTracker:
         params:
             Dictionary of parameter names → values.
         """
-        if self.mlflow_enabled and self._run:
+        if self.mlflow_enabled and self.mlflow_run:
             import mlflow
             mlflow.log_params(params)
         self._metrics_buffer.setdefault("params", {}).update(params)
@@ -115,7 +115,7 @@ class ExperimentTracker:
         step:
             Optional training step / epoch.
         """
-        if self.mlflow_enabled and self._run:
+        if self.mlflow_enabled and self.mlflow_run:
             import mlflow
             mlflow.log_metric(key, value, step=step)
         self._metrics_buffer.setdefault("metrics", {}).setdefault(key, []).append(
@@ -143,7 +143,7 @@ class ExperimentTracker:
         local_path:
             Path to the file to log.
         """
-        if self.mlflow_enabled and self._run:
+        if self.mlflow_enabled and self.mlflow_run:
             import mlflow
             mlflow.log_artifact(str(local_path))
         logger.info(f"Artifact: {local_path}")

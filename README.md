@@ -18,19 +18,42 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Pipeline](#pipeline)
-3. [Project Structure](#project-structure)
-4. [Dataset](#dataset)
-5. [Installation](#installation)
-6. [Configuration](#configuration)
-7. [Training](#training)
-8. [Inference](#inference)
-9. [Evaluation](#evaluation)
-10. [Experiment Tracking](#experiment-tracking)
-11. [Results](#results)
-12. [Tests](#tests)
-13. [Docker](#docker)
-14. [Contributing](#contributing)
+2. [Visual Results](#visual-results)
+3. [Pipeline](#pipeline)
+4. [Project Structure](#project-structure)
+5. [Dataset](#dataset)
+6. [Installation](#installation)
+7. [Google Colab](#google-colab)
+8. [Configuration](#configuration)
+9. [Training](#training)
+10. [Inference](#inference)
+11. [Evaluation](#evaluation)
+12. [Experiment Tracking](#experiment-tracking)
+13. [Tests](#tests)
+14. [Docker](#docker)
+15. [Contributing](#contributing)
+
+---
+
+## Visual Results
+
+### Detection — bounding boxes + confidence scores
+
+![Detection examples](results/detection/detection_banner.jpg)
+
+### Multi-object tracking — unique colour per bear ID
+
+![Tracking examples](results/tracking/tracking_banner.jpg)
+
+### Instance segmentation — per-pixel masks
+
+![Segmentation examples](results/segmentation/segmentation_banner.jpg)
+
+### Binary classification — bear vs. no bear (MobileNetV2)
+
+![Classification examples](results/classification/classification_banner.jpg)
+
+> **Note:** The detection and tracking examples above use ground-truth label boxes from the Roboflow dataset to illustrate the overlay style. Segmentation masks are elliptical approximations; actual YOLOv8-seg output produces precise polygon masks. Classification confidence scores are shown after training.
 
 ---
 
@@ -117,7 +140,8 @@ Bear-Detector/
 │
 ├── data/
 │   ├── raw/                       # Raw datasets (not tracked by git)
-│   └── processed/                 # Processed / formatted datasets
+│   ├── processed/                 # Processed / formatted datasets
+│   └── sample/                    # Sample video/images for quick demos
 │
 ├── models/
 │   ├── detection/                 # Detection model weights
@@ -206,6 +230,47 @@ Or install as an editable package:
 
 ```bash
 pip install -e ".[dev]"
+```
+
+---
+
+## Google Colab
+
+The fastest way to try Bear Detector without any local setup is Google Colab.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/danort92/Bear-Detector/blob/claude/improve-bear-detection-tKY3Y/notebooks/Bear_Detector_Colab.ipynb)
+
+The Colab notebook (`notebooks/Bear_Detector_Colab.ipynb`) walks through the full pipeline:
+
+| Section | What it does |
+|---------|-------------|
+| 1. Setup | Clone repo, install deps, check GPU |
+| 2. Config | Load `config/default.yaml`, override any parameter |
+| 3. Detection training | Train YOLOv8n on the Roboflow bear dataset |
+| 4. Image inference | Run detection on a sample image, display result |
+| 5. Video inference | Upload a video, run detection + tracking, download output |
+| 6. Segmentation | Train YOLOv8n-seg and run mask inference |
+| 7. Evaluation | Compute mAP, PR curve, MOTA/MOTP |
+| 8. MLflow | Browse logged experiments |
+
+**Quick start in Colab:**
+
+```python
+# Cell 1 — clone and install
+!git clone https://github.com/danort92/Bear-Detector.git
+%cd Bear-Detector
+!pip install -r requirements.txt
+
+# Cell 2 — run detection on a sample image
+import sys; sys.path.insert(0, '.')
+from src.inference.detector import BearDetector
+from IPython.display import display
+import cv2, numpy as np
+from PIL import Image
+
+detector = BearDetector("yolov8n.pt", conf_threshold=0.25)   # uses COCO pretrained
+result = detector.predict_image("path/to/bear.jpg", annotate=True)
+display(Image.fromarray(cv2.cvtColor(result["annotated_image"], cv2.COLOR_BGR2RGB)))
 ```
 
 ---
@@ -302,10 +367,13 @@ history = trainer.train(train_loader, val_loader)
 
 ### Video inference (detection + tracking)
 
+Place your test video in `data/sample/` — for example `data/sample/bears.mp4`.
+A short clip demonstrating the pipeline is also tracked there (see `data/sample/`).
+
 ```bash
 # Detection only
 python scripts/infer_video.py \
-    --video input.mp4 \
+    --video data/sample/bears.mp4 \
     --model outputs/models/detection/best.pt
 
 # Detection + SORT tracking (draws unique IDs)
@@ -416,20 +484,6 @@ To disable MLflow:
 
 ```bash
 python scripts/train_detection.py --no-mlflow
-```
-
----
-
-## Results
-
-Qualitative results are stored in `results/`:
-
-```
-results/
-├── detection/      # Example images with bounding boxes
-├── tracking/       # Tracking frames with IDs
-├── segmentation/   # Instance segmentation masks
-└── videos/         # Annotated output videos
 ```
 
 ---

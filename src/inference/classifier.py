@@ -39,6 +39,8 @@ class BearClassifier:
         model_path: str | Path,
         threshold: float = 0.3,
         device: str = "cpu",
+        backbone: str = "mobilenet_v2",
+        hidden_dim: int = 128,
     ) -> None:
         if not _HAS_TORCHVISION:
             raise ImportError("torchvision is required: pip install torchvision")
@@ -46,9 +48,18 @@ class BearClassifier:
         self.threshold = threshold
         self.device = torch.device(device)
 
+        # Build the model with the same architecture that was used during training.
+        # backbone and hidden_dim must match the saved checkpoint.
         from src.training.train_classification import build_classifier
-        self.model = build_classifier().to(self.device)
-        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model = build_classifier(
+            backbone=backbone,
+            pretrained=False,   # weights come from the checkpoint, not ImageNet
+            freeze_backbone=False,
+            hidden_dim=hidden_dim,
+        ).to(self.device)
+        self.model.load_state_dict(
+            torch.load(model_path, map_location=self.device, weights_only=True)
+        )
         self.model.eval()
         logger.info(f"Loaded classifier from {model_path}")
 

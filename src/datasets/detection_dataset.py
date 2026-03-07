@@ -5,7 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from torch.utils.data import Dataset
+try:
+    from torch.utils.data import Dataset
+except ImportError:
+    class Dataset:  # type: ignore[no-redef]
+        pass
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 
