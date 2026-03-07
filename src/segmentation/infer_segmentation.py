@@ -35,6 +35,7 @@ class BearSegmentor:
         conf_threshold: float = 0.25,
         iou_threshold: float = 0.45,
         device: str = "cpu",
+        classes: list[int] | None = None,
     ) -> None:
         try:
             from ultralytics import YOLO
@@ -44,6 +45,7 @@ class BearSegmentor:
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
         self.device = device
+        self.classes = classes  # None → all classes; e.g. [21] for COCO "bear"
         self.model = YOLO(str(weights_path))
         logger.info(f"Loaded segmentor from {weights_path}")
 
@@ -72,6 +74,7 @@ class BearSegmentor:
             conf=self.conf_threshold,
             iou=self.iou_threshold,
             device=self.device,
+            classes=self.classes,
             verbose=False,
         )[0]
 
