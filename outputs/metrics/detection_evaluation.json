@@ -1,0 +1,10 @@
+{
+  "model": "YOLOv8n (COCO pretrained, zero-shot)",
+  "test_images": 164,
+  "total_gt_boxes": 207,
+  "mAP_50": 0.735,
+  "mAP_50_95": 0.5243,
+  "precision": 0.9487,
+  "recall": 0.715,
+  "note": "Zero-shot evaluation using COCO 'bear' class against dataset 'bear face' ground truth"
+}
