@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from src.utils.logging import get_logger
 
@@ -48,6 +51,49 @@ class DetectionTrainer:
         self.experiment_name = cfg["experiment"]["name"]
         self.project_dir = str(self.output_dir / "models" / "detection")
 
+    def _resolve_data_yaml(self) -> str:
+        """Return a path to a data.yaml whose image paths are absolute.
+
+        Ultralytics resolves the ``path`` key in data.yaml relative to its
+        internal datasets directory, not to the yaml file itself.  This method
+        rewrites the yaml in a temporary file using absolute paths so training
+        works from any working directory.
+
+        If the ``valid/images`` split is missing the ``val`` key falls back to
+        the ``test`` split.
+        """
+        yaml_path = Path(self.data_yaml).resolve()
+        with open(yaml_path) as f:
+            data = yaml.safe_load(f)
+
+        dataset_root = yaml_path.parent.resolve()
+
+        # Build absolute split paths
+        def _abs(rel: str) -> str:
+            return str(dataset_root / rel)
+
+        data["path"] = str(dataset_root)
+        data["train"] = _abs(data.get("train", "train/images"))
+        test_abs = _abs(data.get("test", "test/images"))
+
+        val_rel = data.get("val", "valid/images")
+        val_abs = _abs(val_rel)
+        if not Path(val_abs).exists():
+            logger.warning(
+                f"Validation split not found at {val_abs}. Falling back to test split."
+            )
+            val_abs = test_abs
+        data["val"] = val_abs
+        data["test"] = test_abs
+
+        tmp = tempfile.NamedTemporaryFile(
+            mode="w", suffix="_data.yaml", delete=False
+        )
+        yaml.dump(data, tmp)
+        tmp.close()
+        logger.info(f"Resolved data yaml written to {tmp.name}")
+        return tmp.name
+
     def train(self) -> dict[str, Any]:
         """Run the YOLOv8 training pipeline.
 
@@ -72,8 +118,9 @@ class DetectionTrainer:
             f"{self.epochs} epochs, imgsz={self.image_size}"
         )
 
+        resolved_yaml = self._resolve_data_yaml()
         results = model.train(
-            data=self.data_yaml,
+            data=resolved_yaml,
             epochs=self.epochs,
             imgsz=self.image_size,
             batch=self.batch_size,
@@ -138,7 +185,8 @@ class DetectionTrainer:
             )
 
         model = YOLO(weights_path)
-        metrics = model.val(data=self.data_yaml, imgsz=self.image_size, workers=self.workers)
+        resolved_yaml = self._resolve_data_yaml()
+        metrics = model.val(data=resolved_yaml, imgsz=self.image_size, workers=self.workers)
 
         result = {
             "mAP50": float(metrics.box.map50),
