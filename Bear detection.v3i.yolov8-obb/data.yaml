@@ -1,7 +1,7 @@
-path: ../datasets/roboflow
+path: .
 
 train: train/images
-val: valid/images
+val: test/images   # no valid/ split in this export; use test as val
 test: test/images
 
 names: 
