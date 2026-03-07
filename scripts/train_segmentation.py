@@ -74,7 +74,7 @@ def main() -> None:
             "seed": seed,
         })
 
-        trainer = SegmentationTrainer(cfg, mlflow_run=run._run)
+        trainer = SegmentationTrainer(cfg, mlflow_run=run.mlflow_run)
         output = trainer.train()
         logger.info(f"Segmentation training complete. Best weights: {output['best_weights']}")
 

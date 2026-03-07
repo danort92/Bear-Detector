@@ -15,7 +15,16 @@ from typing import Callable, Optional, Tuple
 
 import numpy as np
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset, random_split
+
+# torch is an optional heavy dependency — imported lazily inside classes/functions
+try:
+    from torch.utils.data import DataLoader, Dataset, Subset
+    _HAS_TORCH = True
+except ImportError:
+    _HAS_TORCH = False
+    # Provide a stub so the module can be imported without torch
+    class Dataset:  # type: ignore[no-redef]
+        pass
 
 # Gracefully handle missing torchvision
 try:
@@ -169,23 +178,31 @@ def build_classification_dataloaders(
         a NumPy array of shape ``(2,)`` for use in a weighted loss.
     """
     import torch
+    from torch.utils.data import DataLoader, Subset
     from src.utils.seed import worker_init_fn
 
+    # Compute class weights from the unaugmented dataset
     full_dataset = BearClassificationDataset(bear_dir, other_dir)
     class_weights = full_dataset.class_weights
 
-    n_val = int(len(full_dataset) * val_split)
-    n_train = len(full_dataset) - n_val
-    generator = torch.Generator().manual_seed(seed)
-    train_subset, val_subset = random_split(full_dataset, [n_train, n_val], generator=generator)
+    # Deterministic train/val index split
+    n_total = len(full_dataset)
+    n_val = int(n_total * val_split)
+    n_train = n_total - n_val
+    rng = torch.Generator().manual_seed(seed)
+    indices = torch.randperm(n_total, generator=rng).tolist()
+    train_indices, val_indices = indices[:n_train], indices[n_train:]
 
-    # Apply different transforms to train and val splits
-    train_subset.dataset = BearClassificationDataset(
+    # Build two separate datasets with the correct transforms, then Subset them.
+    # This avoids the broken pattern of reassigning .dataset on an existing Subset.
+    train_base = BearClassificationDataset(
         bear_dir, other_dir, transform=_default_train_transform(image_size)
     )
-    val_subset.dataset = BearClassificationDataset(
+    val_base = BearClassificationDataset(
         bear_dir, other_dir, transform=_default_val_transform(image_size)
     )
+    train_subset = Subset(train_base, train_indices)
+    val_subset   = Subset(val_base,   val_indices)
 
     train_loader = DataLoader(
         train_subset,
@@ -205,35 +222,3 @@ def build_classification_dataloaders(
     )
 
     return train_loader, val_loader, class_weights
-
-
-class BearDetectionDataset(Dataset):
-    """Minimal wrapper around a YOLO-format detection dataset.
-
-    This class is lightweight: it only reads image paths and their label
-    files so the dataset size and structure can be verified without loading
-    every image into memory.
-
-    Parameters
-    ----------
-    images_dir:
-        Directory containing ``.jpg``/``.png`` images.
-    labels_dir:
-        Directory containing YOLO-format ``.txt`` label files.
-    """
-
-    def __init__(self, images_dir: str | Path, labels_dir: str | Path) -> None:
-        self.images_dir = Path(images_dir)
-        self.labels_dir = Path(labels_dir)
-        self.image_paths = sorted(
-            p for p in self.images_dir.iterdir()
-            if p.suffix.lower() in IMAGE_EXTENSIONS
-        )
-
-    def __len__(self) -> int:
-        return len(self.image_paths)
-
-    def __getitem__(self, idx: int) -> dict:
-        image_path = self.image_paths[idx]
-        label_path = self.labels_dir / image_path.with_suffix(".txt").name
-        return {"image_path": str(image_path), "label_path": str(label_path)}
