@@ -1,0 +1,110 @@
+# Bear Detector — Default Configuration
+# All parameters can be overridden via CLI or experiment-specific YAML files.
+
+experiment:
+  name: "bear_detector_baseline"
+  seed: 42
+  output_dir: "outputs"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Data
+# ──────────────────────────────────────────────────────────────────────────────
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  # Classification dataset (MobileNetV2)
+  classification:
+    bear_dir: "ct/bear_ct"
+    other_dir: "ct/other_ct"
+    image_size: [224, 224]
+    val_split: 0.2
+    batch_size: 32
+  # Detection dataset (YOLOv8)
+  detection:
+    yaml_path: "Bear detection.v3i.yolov8-obb/data.yaml"
+    image_size: 640
+    batch_size: 16
+  # Segmentation dataset
+  segmentation:
+    data_dir: "data/processed/segmentation"
+    image_size: 640
+    batch_size: 8
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Models
+# ──────────────────────────────────────────────────────────────────────────────
+model:
+  classification:
+    backbone: "mobilenet_v2"
+    pretrained: true
+    freeze_backbone: true
+    hidden_dim: 128
+    dropout: 0.0
+    threshold: 0.3
+  detection:
+    architecture: "yolov8n"          # yolov8n / yolov8s / yolov8m / yolov8l / yolov8x
+    pretrained_weights: null         # path to .pt file, or null to use COCO pretrained
+  segmentation:
+    architecture: "yolov8n-seg"      # yolov8n-seg / yolov8s-seg / mask_rcnn
+    pretrained_weights: null
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Training
+# ──────────────────────────────────────────────────────────────────────────────
+training:
+  classification:
+    epochs: 20
+    learning_rate: 0.001
+    optimizer: "adam"
+    early_stopping_patience: 5
+    class_weight_balancing: true
+  detection:
+    epochs: 50
+    learning_rate: 0.001
+    optimizer: "adamw"
+    weight_decay: 0.0005
+    warmup_epochs: 3
+    cos_lr: true
+    amp: true                        # Automatic Mixed Precision
+    workers: 4
+  segmentation:
+    epochs: 50
+    learning_rate: 0.001
+    optimizer: "adamw"
+    weight_decay: 0.0005
+    amp: true
+    workers: 4
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Inference
+# ──────────────────────────────────────────────────────────────────────────────
+inference:
+  detection_conf_threshold: 0.25
+  detection_iou_threshold: 0.45
+  classification_threshold: 0.3
+  device: "auto"                     # "auto" | "cpu" | "cuda" | "mps"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Tracking
+# ──────────────────────────────────────────────────────────────────────────────
+tracking:
+  algorithm: "sort"                  # sort | deep_sort
+  max_age: 30                        # frames before track is deleted
+  min_hits: 3                        # frames before track is confirmed
+  iou_threshold: 0.3
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Evaluation
+# ──────────────────────────────────────────────────────────────────────────────
+evaluation:
+  iou_thresholds: [0.5, 0.75]       # for mAP computation
+  save_plots: true
+  save_confusion_matrix: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Experiment Tracking
+# ──────────────────────────────────────────────────────────────────────────────
+mlflow:
+  enabled: true
+  tracking_uri: "outputs/experiments/mlruns"
+  experiment_name: "bear_detector"
