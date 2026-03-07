@@ -31,7 +31,8 @@ class DetectionTrainer:
     def __init__(self, cfg: dict[str, Any], mlflow_run=None) -> None:
         self.cfg = cfg
         self.mlflow_run = mlflow_run
-        self.output_dir = Path(cfg["experiment"]["output_dir"])
+        output_dir = Path(cfg["experiment"]["output_dir"])
+        self.output_dir = (_REPO_ROOT / output_dir) if not output_dir.is_absolute() else output_dir
         self._resolved_yaml: str | None = None  # cached by _resolve_data_yaml()
 
         model_cfg = cfg["model"]["detection"]
