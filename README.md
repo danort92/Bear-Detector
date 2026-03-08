@@ -481,8 +481,8 @@ Results are saved to `outputs/metrics/detection_evaluation.json`.
 |-------|---------|--------------|-----------|--------|-------|
 | YOLOv8n (COCO, zero-shot) | 0.735 | 0.524 | 0.949 | 0.715 | Pretrained on COCO, no fine-tuning |
 
-Evaluated on 164 test images (207 ground-truth boxes). Full results in
-`outputs/metrics/detection_evaluation.json`.
+Results are reproducible via **Section 7a** of the Colab notebook.
+Full results saved to `outputs/metrics/detection_evaluation.json`.
 
 ---
 
