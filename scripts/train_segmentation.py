@@ -38,7 +38,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data-dir", default=None, help="Override segmentation data directory")
     parser.add_argument("--batch", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--no-mlflow", action="store_true")
     return parser.parse_args()
 
 
@@ -56,8 +55,6 @@ def main() -> None:
         cfg["data"]["segmentation"]["batch_size"] = args.batch
     if args.seed is not None:
         cfg["experiment"]["seed"] = args.seed
-    if args.no_mlflow:
-        cfg["mlflow"]["enabled"] = False
 
     seed = cfg["experiment"]["seed"]
     set_seed(seed)
@@ -74,7 +71,7 @@ def main() -> None:
             "seed": seed,
         })
 
-        trainer = SegmentationTrainer(cfg, mlflow_run=run.mlflow_run)
+        trainer = SegmentationTrainer(cfg)
         output = trainer.train()
         logger.info(f"Segmentation training complete. Best weights: {output['best_weights']}")
 

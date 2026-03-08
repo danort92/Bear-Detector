@@ -18,13 +18,10 @@ class SegmentationTrainer:
     ----------
     cfg:
         Configuration dictionary (see ``config/default.yaml``).
-    mlflow_run:
-        Optional MLflow active run for metric and artifact logging.
     """
 
-    def __init__(self, cfg: dict[str, Any], mlflow_run=None) -> None:
+    def __init__(self, cfg: dict[str, Any]) -> None:
         self.cfg = cfg
-        self.mlflow_run = mlflow_run
         self.output_dir = Path(cfg["experiment"]["output_dir"])
 
         model_cfg = cfg["model"]["segmentation"]
@@ -103,10 +100,6 @@ class SegmentationTrainer:
             "results_dir": str(Path(self.project_dir) / self.experiment_name),
         }
 
-        if self.mlflow_run and best_pt.exists():
-            import mlflow
-            mlflow.log_artifact(str(best_pt), artifact_path="segmentation_weights")
-
         metrics_path = self.output_dir / "metrics" / "segmentation_results.json"
         metrics_path.parent.mkdir(parents=True, exist_ok=True)
         with open(metrics_path, "w") as f:
@@ -148,9 +141,5 @@ class SegmentationTrainer:
             "box_mAP50": float(metrics.box.map50),
         }
         logger.info(f"Segmentation validation metrics: {result}")
-
-        if self.mlflow_run:
-            import mlflow
-            mlflow.log_metrics(result)
 
         return result

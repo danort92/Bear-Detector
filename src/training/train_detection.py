@@ -24,13 +24,10 @@ class DetectionTrainer:
     ----------
     cfg:
         Configuration dictionary (see ``config/default.yaml``).
-    mlflow_run:
-        Optional MLflow active run for logging metrics and artifacts.
     """
 
-    def __init__(self, cfg: dict[str, Any], mlflow_run=None) -> None:
+    def __init__(self, cfg: dict[str, Any]) -> None:
         self.cfg = cfg
-        self.mlflow_run = mlflow_run
         output_dir = Path(cfg["experiment"]["output_dir"])
         self.output_dir = (_REPO_ROOT / output_dir) if not output_dir.is_absolute() else output_dir
         self._resolved_yaml: str | None = None  # cached by _resolve_data_yaml()
@@ -155,12 +152,6 @@ class DetectionTrainer:
             "results_dir": str(Path(self.project_dir) / self.experiment_name),
         }
 
-        # Log artifact path to MLflow
-        if self.mlflow_run and best_pt.exists():
-            import mlflow
-            mlflow.log_artifact(str(best_pt), artifact_path="detection_weights")
-            logger.info("Logged best.pt to MLflow.")
-
         # Export key metrics to outputs/metrics/
         metrics_path = self.output_dir / "metrics" / "detection_results.json"
         metrics_path.parent.mkdir(parents=True, exist_ok=True)
@@ -202,9 +193,5 @@ class DetectionTrainer:
             "mAP50-95": float(metrics.box.map),
         }
         logger.info(f"Validation metrics: {result}")
-
-        if self.mlflow_run:
-            import mlflow
-            mlflow.log_metrics(result)
 
         return result

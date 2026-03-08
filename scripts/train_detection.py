@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Train a YOLOv8 bear detection model.
 
+MLflow tracking is handled automatically by Ultralytics' built-in callback.
+To disable it: yolo settings mlflow=False
+
 Example
 -------
 .. code-block:: bash
@@ -48,7 +51,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data", default=None, help="Override path to data.yaml")
     parser.add_argument("--batch", type=int, default=None, help="Override batch size")
     parser.add_argument("--seed", type=int, default=None, help="Override random seed")
-    parser.add_argument("--no-mlflow", action="store_true", help="Disable MLflow tracking")
     return parser.parse_args()
 
 
@@ -68,22 +70,10 @@ def main() -> None:
         cfg["data"]["detection"]["batch_size"] = args.batch
     if args.seed is not None:
         cfg["experiment"]["seed"] = args.seed
-    if args.no_mlflow:
-        cfg["mlflow"]["enabled"] = False
 
     seed = cfg["experiment"]["seed"]
     set_seed(seed)
     logger.info(f"Seed set to {seed}")
-
-    # When MLflow is enabled we let Ultralytics' built-in callback own the
-    # MLflow run.  Opening a second active run on top of it causes a param
-    # conflict (Ultralytics tries to re-log 'seed' with a different value),
-    # which makes MLflow abort tracking entirely.  Our tracker still buffers
-    # params/metrics to JSON; we just don't open an MLflow run ourselves.
-    mlflow_enabled = cfg.get("mlflow", {}).get("enabled", False)
-    if mlflow_enabled:
-        cfg["mlflow"]["enabled"] = False   # disable our run; Ultralytics owns MLflow
-        logger.info("MLflow tracking owned by Ultralytics — disabling ExperimentTracker MLflow run.")
 
     tracker = ExperimentTracker(cfg)
 
@@ -97,7 +87,7 @@ def main() -> None:
             "seed": seed,
         })
 
-        trainer = DetectionTrainer(cfg, mlflow_run=None)
+        trainer = DetectionTrainer(cfg)
         output = trainer.train()
         logger.info(f"Training complete. Best weights: {output['best_weights']}")
 
