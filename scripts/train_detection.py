@@ -75,6 +75,16 @@ def main() -> None:
     set_seed(seed)
     logger.info(f"Seed set to {seed}")
 
+    # When MLflow is enabled we let Ultralytics' built-in callback own the
+    # MLflow run.  Opening a second active run on top of it causes a param
+    # conflict (Ultralytics tries to re-log 'seed' with a different value),
+    # which makes MLflow abort tracking entirely.  Our tracker still buffers
+    # params/metrics to JSON; we just don't open an MLflow run ourselves.
+    mlflow_enabled = cfg.get("mlflow", {}).get("enabled", False)
+    if mlflow_enabled:
+        cfg["mlflow"]["enabled"] = False   # disable our run; Ultralytics owns MLflow
+        logger.info("MLflow tracking owned by Ultralytics — disabling ExperimentTracker MLflow run.")
+
     tracker = ExperimentTracker(cfg)
 
     with tracker.start_run() as run:
@@ -87,7 +97,7 @@ def main() -> None:
             "seed": seed,
         })
 
-        trainer = DetectionTrainer(cfg, mlflow_run=run.mlflow_run)
+        trainer = DetectionTrainer(cfg, mlflow_run=None)
         output = trainer.train()
         logger.info(f"Training complete. Best weights: {output['best_weights']}")
 
