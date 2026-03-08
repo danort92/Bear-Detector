@@ -30,8 +30,7 @@
 11. [Evaluation](#evaluation)
 12. [Experiment Tracking](#experiment-tracking)
 13. [Tests](#tests)
-14. [Docker](#docker)
-15. [Contributing](#contributing)
+14. [Contributing](#contributing)
 
 ---
 
@@ -166,7 +165,6 @@ Bear-Detector/
 │
 ├── tests/                         # pytest unit tests
 │
-├── Dockerfile
 ├── pyproject.toml
 ├── requirements.txt
 └── README.md
@@ -537,37 +535,6 @@ Test coverage includes:
 - Detection evaluation metrics (mAP, AP, PR curve)
 - Visualization utilities
 - Segmentation dataset
-
----
-
-## Docker
-
-Build and run in a fully reproducible Docker environment:
-
-```bash
-# Build the image
-docker build -t bear-detector .
-
-# Run tests
-docker run bear-detector
-
-# Train detection model (mount data and outputs)
-docker run --gpus all \
-    -v $(pwd)/data:/app/data \
-    -v $(pwd)/outputs:/app/outputs \
-    bear-detector \
-    python scripts/train_detection.py --epochs 50
-
-# Infer on a video
-docker run --gpus all \
-    -v $(pwd)/outputs:/app/outputs \
-    -v /path/to/input.mp4:/app/input.mp4 \
-    bear-detector \
-    python scripts/infer_video.py \
-        --video /app/input.mp4 \
-        --model /app/outputs/models/detection/best.pt \
-        --track
-```
 
 ---
 
