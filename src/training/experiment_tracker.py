@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Generator, Optional
 
@@ -89,8 +90,9 @@ class ExperimentTracker:
     # ------------------------------------------------------------------
 
     def _flush_json(self) -> None:
-        """Write buffered metrics to a JSON file in the output directory."""
-        out_file = self.output_dir / f"{self.experiment_name}_metrics.json"
+        """Write buffered metrics to a timestamped JSON file so each run is preserved."""
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_file = self.output_dir / f"{self.experiment_name}_{ts}.json"
         with open(out_file, "w") as f:
             json.dump(self._metrics_buffer, f, indent=2)
         logger.info(f"Experiment log saved to {out_file}")
