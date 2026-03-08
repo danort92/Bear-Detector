@@ -7,6 +7,9 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+# Repo root is three levels above this file: src/training/train_detection.py
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
 import yaml
 
 from src.utils.logging import get_logger
@@ -28,7 +31,8 @@ class DetectionTrainer:
     def __init__(self, cfg: dict[str, Any], mlflow_run=None) -> None:
         self.cfg = cfg
         self.mlflow_run = mlflow_run
-        self.output_dir = Path(cfg["experiment"]["output_dir"])
+        output_dir = Path(cfg["experiment"]["output_dir"])
+        self.output_dir = (_REPO_ROOT / output_dir) if not output_dir.is_absolute() else output_dir
         self._resolved_yaml: str | None = None  # cached by _resolve_data_yaml()
 
         model_cfg = cfg["model"]["detection"]
@@ -67,7 +71,11 @@ class DetectionTrainer:
         if self._resolved_yaml is not None:
             return self._resolved_yaml
 
-        yaml_path = Path(self.data_yaml).resolve()
+        yaml_path = Path(self.data_yaml)
+        if not yaml_path.is_absolute():
+            yaml_path = (_REPO_ROOT / yaml_path).resolve()
+        else:
+            yaml_path = yaml_path.resolve()
         with open(yaml_path) as f:
             data = yaml.safe_load(f)
 

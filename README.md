@@ -247,11 +247,35 @@ The Colab notebook (`notebooks/Bear_Detector_Colab.ipynb`) walks through the ful
 | 1. Setup | Clone repo, install deps, check GPU |
 | 2. Config | Load `config/default.yaml`, override any parameter |
 | 3. Detection training | Train YOLOv8n on the Roboflow bear dataset |
-| 4. Image inference | Run detection on a sample image, display result |
-| 5. Video inference | Upload a video, run detection + tracking, download output |
-| 6. Segmentation | Train YOLOv8n-seg and run mask inference |
+| 4. Image inference | **Upload your own image** or pick from test set; displays annotated result |
+| 5. Video inference | **Upload your own video** (or use `data/sample/bear_sample.mp4`); runs detection + tracking and downloads H.264 output |
+| 6. Segmentation | Run mask inference on an image and on the video from Section 5 |
 | 7. Evaluation | Compute mAP, PR curve, MOTA/MOTP |
-| 8. MLflow | Browse logged experiments |
+| 8. MLflow | Browse logged experiments (JSON by default; full UI via ngrok) |
+
+**Adding your own sample video to the repo:**
+
+Place a short bear video (MP4, ≤ 50 MB recommended for GitHub) at:
+
+```
+data/sample/bear_sample.mp4
+```
+
+The notebook will automatically detect and use it (Section 5). To push it to GitHub:
+
+```bash
+# For files ≤ 50 MB — commit normally
+git add data/sample/bear_sample.mp4
+git commit -m "add sample bear video"
+git push
+
+# For files > 50 MB — use Git LFS
+git lfs install
+git lfs track "data/sample/*.mp4"
+git add .gitattributes data/sample/bear_sample.mp4
+git commit -m "add sample bear video via LFS"
+git push
+```
 
 **Quick start in Colab:**
 
