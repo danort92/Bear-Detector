@@ -4,5 +4,5 @@ train: train/images
 val: test/images   # no valid/ split in this export; use test as val
 test: test/images
 
-names: 
-  0: bear face
+names:
+  0: bear
