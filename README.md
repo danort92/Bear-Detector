@@ -480,8 +480,9 @@ Results are saved to `outputs/metrics/detection_evaluation.json`.
 | Model | mAP@0.5 | mAP@0.5:0.95 | Precision | Recall | Notes |
 |-------|---------|--------------|-----------|--------|-------|
 | YOLOv8n (COCO, zero-shot) | 0.735 | 0.524 | 0.949 | 0.715 | Pretrained on COCO, no fine-tuning |
+| YOLOv8n (fine-tuned) | 0.960 | 0.744 | 0.886 | 0.918 | Fine-tuned on bear dataset (Section 7b) |
 
-Results are reproducible via **Section 7a** of the Colab notebook.
+Results are reproducible via **Section 7a** (zero-shot) and **Section 7b** (fine-tuned) of the Colab notebook.
 Full results saved to `outputs/metrics/detection_evaluation.json`.
 
 ---
