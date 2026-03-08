@@ -168,8 +168,8 @@ class BearDetector:
                 )
                 tracks = tracker.update(detections_np)
                 for trk in tracks:
-                    x1, y1, x2, y2, track_id = trk
-                    draw_tracked_detection(frame, [x1, y1, x2, y2], int(track_id))
+                    x1, y1, x2, y2, track_id, conf = trk
+                    draw_tracked_detection(frame, [x1, y1, x2, y2], int(track_id), float(conf))
             else:
                 for box, score, label in zip(boxes, scores, labels):
                     draw_detection(frame, box, label, score)

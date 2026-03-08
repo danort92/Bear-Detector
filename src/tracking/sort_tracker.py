@@ -28,7 +28,7 @@ class KalmanBoxTracker:
 
     count = 0
 
-    def __init__(self, bbox: np.ndarray) -> None:
+    def __init__(self, bbox: np.ndarray, conf: float = 1.0) -> None:
         """Initialise a tracker from a detection bbox [x1, y1, x2, y2]."""
         from filterpy.kalman import KalmanFilter  # optional but preferred
 
@@ -39,6 +39,7 @@ class KalmanBoxTracker:
         self.time_since_update = 0
         self.history: list[np.ndarray] = []
         self.age = 0
+        self.conf = conf  # confidence of the last matched detection
 
         # Kalman filter matrices
         self.kf = KalmanFilter(dim_x=7, dim_z=4)
@@ -76,12 +77,13 @@ class KalmanBoxTracker:
         self.history.append(_z_to_bbox(self.kf.x))
         return self.history[-1]
 
-    def update(self, bbox: np.ndarray) -> None:
+    def update(self, bbox: np.ndarray, conf: float = 1.0) -> None:
         """Update the state with an observed bounding box."""
         self.time_since_update = 0
         self.history = []
         self.hits += 1
         self.no_loss_streak += 1
+        self.conf = conf
         self.kf.update(_bbox_to_z(bbox))
 
     def get_state(self) -> np.ndarray:
@@ -271,13 +273,15 @@ class SORTTracker:
             dets, trks, self.iou_threshold
         )
 
-        # Step 3: Update matched trackers
+        # Step 3: Update matched trackers (propagate confidence)
         for m in matched:
-            self.trackers[m[1]].update(dets[m[0]])
+            conf = float(detections[m[0], 4]) if detections.shape[1] > 4 else 1.0
+            self.trackers[m[1]].update(dets[m[0]], conf)
 
         # Step 4: Create new tracks for unmatched detections
         for i in unmatched_dets:
-            self.trackers.append(KalmanBoxTracker(dets[i]))
+            conf = float(detections[i, 4]) if detections.shape[1] > 4 else 1.0
+            self.trackers.append(KalmanBoxTracker(dets[i], conf))
 
         # Step 5: Delete stale tracks
         self.trackers = [
@@ -285,11 +289,11 @@ class SORTTracker:
             if t.time_since_update <= self.max_age
         ]
 
-        # Step 6: Return confirmed tracks
+        # Step 6: Return confirmed tracks as [x1, y1, x2, y2, track_id, conf]
         ret = []
         for trk in self.trackers:
             if trk.hits >= self.min_hits or self.frame_count <= self.min_hits:
                 pos = trk.get_state()
-                ret.append(np.concatenate([pos, [trk.id]]))
+                ret.append(np.concatenate([pos, [trk.id, trk.conf]]))
 
-        return np.array(ret) if ret else np.empty((0, 5))
+        return np.array(ret) if ret else np.empty((0, 6))
