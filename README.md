@@ -558,7 +558,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 **Danilo Ortelli**
 - GitHub: [@danort92](https://github.com/danort92)
-- LinkedIn: [daniloortelli](https://www.linkedin.com/in/daniloortelli/)
+- LinkedIn: [daniloortelli](https://www.linkedin.com/in/danilo-ortelli/)
 
 ---
 
